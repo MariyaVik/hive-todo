@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_todo/domain/box_manager.dart';
 import 'package:hive_todo/ui/navigation/app_navigation.dart';
 
-import '../models/boxes.dart';
-import '../models/todo.dart';
+import '../domain/models/boxes.dart';
+import '../domain/models/todo.dart';
 
 class TodoListPage extends StatelessWidget {
   const TodoListPage({super.key});
@@ -42,7 +43,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-        valueListenable: Hive.box<Todo>(BoxName.todo).listenable(),
+        valueListenable: BoxManager().todoBox.listenable(),
         builder: (context, box, _) {
           if (box.isEmpty) {
             return const Center(
@@ -51,20 +52,18 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           }
           return ListView.builder(
               itemCount: box.length,
-              itemBuilder: (context, intex) =>
-                  TodoRowWidget(box: box, index: intex));
+              itemBuilder: (context, intex) => TodoRowWidget(index: intex));
         });
   }
 }
 
 class TodoRowWidget extends StatelessWidget {
-  const TodoRowWidget({super.key, required this.index, required this.box});
+  const TodoRowWidget({super.key, required this.index});
   final int index;
-  final Box<Todo> box;
 
   @override
   Widget build(BuildContext context) {
-    Todo todo = box.getAt(index)!;
+    Todo todo = BoxManager().todoBox.getAt(index)!;
     return Dismissible(
       key: Key(todo.id.toString()),
       background: Container(color: Colors.red),
@@ -72,7 +71,7 @@ class TodoRowWidget extends StatelessWidget {
         title: Text(todo.name),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
-          int key = box.keyAt(index);
+          int key = BoxManager().todoBox.keyAt(index);
           Navigator.of(context).pushNamed(AppNavName.nessecary, arguments: key);
         },
       ),
@@ -134,7 +133,8 @@ class _AddPuchaseWidgetState extends State<AddPuchaseWidget> {
     if (nameController.text == '') return;
 
     Box<Todo> box = Hive.box<Todo>(BoxName.todo);
-    box.add(Todo(name: nameController.text, id: box.length));
+    final int id = box.isEmpty ? 1 : 1 + (box.getAt(box.length - 1)?.id ?? 1);
+    box.add(Todo(name: nameController.text, id: id));
     if (context.mounted) {
       Navigator.of(context).pop();
     }

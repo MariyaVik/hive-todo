@@ -6,7 +6,7 @@ class Nessecary extends HiveObject {
   @HiveField(0)
   bool complete;
   @HiveField(1)
-  String id;
+  int id;
   @HiveField(2)
   String note;
   @HiveField(3)

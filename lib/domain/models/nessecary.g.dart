@@ -18,7 +18,7 @@ class NessecaryAdapter extends TypeAdapter<Nessecary> {
     };
     return Nessecary(
       complete: fields[0] as bool,
-      id: fields[1] as String,
+      id: fields[1] as int,
       note: fields[2] as String,
       task: fields[3] as String,
     );

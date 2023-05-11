@@ -2,17 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hive_todo/ui/navigation/app_navigation.dart';
 
-import 'models/boxes.dart';
-import 'models/nessecary.dart';
-import 'models/todo.dart';
+import 'domain/box_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  Hive.registerAdapter(TodoAdapter());
-  Hive.registerAdapter(NessecaryAdapter());
-  await Hive.openBox<Todo>(BoxName.todo);
-  await Hive.openBox<Nessecary>(BoxName.nessecary);
+  await BoxManager().openTodoBox();
   runApp(const MyApp());
 }
 

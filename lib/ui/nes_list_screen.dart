@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_todo/domain/box_manager.dart';
 
-import '../models/boxes.dart';
-import '../models/nessecary.dart';
-import '../models/todo.dart';
+import '../domain/models/boxes.dart';
+import '../domain/models/nessecary.dart';
+import '../domain/models/todo.dart';
 
 class NecListPage extends StatefulWidget {
   const NecListPage({super.key, required this.todoKey});
@@ -14,81 +15,85 @@ class NecListPage extends StatefulWidget {
 
 class _NecListPageState extends State<NecListPage> {
   TextEditingController controller = TextEditingController();
+  @override
+  void didChangeDependencies() async {
+    super.didChangeDependencies();
+    await BoxManager().openNesBox(widget.todoKey);
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    final todoBox = Hive.box<Todo>(BoxName.todo);
+    final todoBox = BoxManager().todoBox;
     Todo todo = todoBox.get(widget.todoKey)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(todo.name),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            BoxManager().closeBox(BoxManager().nesBox(widget.todoKey));
+            Navigator.of(context).pop();
+          },
+        ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ValueListenableBuilder(
-                valueListenable: Hive.box<Todo>(BoxName.todo)
-                    .listenable(keys: [widget.todoKey]),
-                builder: (context, box, _) {
-                  Todo t = box.get(widget.todoKey)!;
-                  if (t.things == null || t.things!.isEmpty) {
-                    return const Center(
-                      child: Text('Список пуст'),
-                    );
-                  }
-                  return ListView.builder(
-                      itemCount: t.things?.length,
-                      itemBuilder: (context, index) {
-                        Nessecary nes = t.things![index];
-                        return Dismissible(
-                          key: Key(nes.id),
-                          behavior: HitTestBehavior.opaque,
-                          onDismissed: (direction) {
-                            nes.delete();
-                          },
-                          background: Container(
-                            color: Colors.red,
-                            child: const Icon(Icons.delete),
-                          ),
-                          child: CheckboxListTile(
-                            title: Text(nes.note),
-                            onChanged: (bool? value) {
-                              nes.complete = !nes.complete;
-                              nes.save();
-                              t.save();
-                            },
-                            value: nes.complete,
-                          ),
-                        );
-                      });
-                }),
-          ),
-          Row(
-            children: [
-              Expanded(
-                  child: TextField(
-                controller: controller,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-              )),
-              ElevatedButton(
-                  onPressed: () {
-                    final Box<Nessecary> nesBox =
-                        Hive.box<Nessecary>(BoxName.nessecary);
-                    final nes = Nessecary(
-                        note: controller.text, id: nesBox.length.toString());
-                    nesBox.add(nes);
-
-                    final Box<Todo> toodBox = Hive.box<Todo>(BoxName.todo);
-                    final todo = toodBox.get(widget.todoKey);
-                    todo?.addNes(nesBox, nes);
-                    todo?.save();
-                    controller.clear();
-                  },
-                  child: const Text('Добавить'))
-            ],
-          )
-        ],
-      ),
+      body: !Hive.isBoxOpen(BoxName.nessecary + widget.todoKey.toString())
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: ValueListenableBuilder(
+                      valueListenable:
+                          BoxManager().nesBox(widget.todoKey).listenable(),
+                      builder: (context, box, _) {
+                        if (box.isEmpty) {
+                          return const Center(
+                            child: Text('Список пуст'),
+                          );
+                        }
+                        return ListView.builder(
+                            itemCount: box.length,
+                            itemBuilder: (context, index) {
+                              Nessecary nes = box.getAt(index)!;
+                              return Dismissible(
+                                key: Key(nes.id.toString()),
+                                behavior: HitTestBehavior.opaque,
+                                onDismissed: (direction) {
+                                  nes.delete();
+                                },
+                                background: Container(
+                                  color: Colors.red,
+                                  child: const Icon(Icons.delete),
+                                ),
+                                child: CheckboxListTile(
+                                  title: Text(nes.note),
+                                  onChanged: (bool? value) {
+                                    BoxManager().toggleNes(nes);
+                                  },
+                                  value: nes.complete,
+                                ),
+                              );
+                            });
+                      }),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                        child: TextField(
+                      controller: controller,
+                      decoration:
+                          const InputDecoration(border: OutlineInputBorder()),
+                    )),
+                    ElevatedButton(
+                        onPressed: () {
+                          BoxManager().addNes(controller, widget.todoKey);
+                        },
+                        child: const Text('Добавить'))
+                  ],
+                )
+              ],
+            ),
     );
   }
 }
